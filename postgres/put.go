@@ -1,17 +1,12 @@
 package postgres
 
 import (
+	"encoding/json"
 	"log"
 
 	"github.com/jackc/pgx"
 	uuid "github.com/satori/go.uuid"
 )
-
-func panicIf(err error) {
-	if err != nil {
-		panic(err)
-	}
-}
 
 func CanonizeExpectedVersion(v *int) *int {
 	// return nil if expected_version.nil?
@@ -49,6 +44,11 @@ func (p *put) insertMessage(
 	// transformed_metadata = transformed_metadata(metadata)
 	// records = execute_query(id, stream_name, type, transformed_data, transformed_metadata, expected_version)
 	// position(records)
+	jdata, err := json.Marshal(data)
+	panicIf(err)
+	jmeta, err := json.Marshal(meta)
+	panicIf(err)
+	log.Println("WRITING", id, streamName, typ, string(jdata), string(jmeta), expectVer)
 	pos, err := p.executeQuery(id, streamName, typ, data, meta, expectVer)
 	panicIf(err)
 	callback(pos)
