@@ -43,7 +43,9 @@ func readerSvc(conf pgx.ConnConfig, consumerId int, totalConsumers int) {
 		posData := make(map[string]int)
 		err := json.Unmarshal([]byte(*last.Data), &posData)
 		panicIf(err)
-		pos = posData["position"]
+		if mapPos, ok := posData["position"]; ok {
+			pos = mapPos + 1
+		}
 	}
 
 	log.Println(consumerId, "reading string", STREAM_NAME, "from position", pos)
@@ -61,9 +63,9 @@ func readerSvc(conf pgx.ConnConfig, consumerId int, totalConsumers int) {
 			panicIf(err)
 			log.Printf("%d read: %s", consumerId, string(j))
 			if streamname.IsCategory(STREAM_NAME) {
-				pos = msg.GlobalPosition
+				pos = msg.GlobalPosition + 1
 			} else {
-				pos = msg.Position
+				pos = msg.Position + 1
 			}
 		}
 
@@ -132,7 +134,7 @@ func main() {
 
 	go readerSvc(conf, 0, 0)
 	runtime.Gosched()
-	// producer(conf)
+	producer(conf)
 	time.Sleep(600 * time.Millisecond)
 	// printMessages(conf)
 }
