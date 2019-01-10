@@ -35,8 +35,20 @@ func readerSvc(conf pgx.ConnConfig, consumerId int, totalConsumers int) {
 	pos := 0
 	batchSize := 10
 	log.Printf("starting reader service %d", consumerId)
+	STREAM_NAME := "nothing"
+
+	sConsumerId := fmt.Sprintf("%d", consumerId)
+	last := s.Last(streamname.StreamName("nothing", sConsumerId, "position"))
+	if last != nil && last.Data != nil {
+		posData := make(map[string]int)
+		err := json.Unmarshal([]byte(*last.Data), &posData)
+		panicIf(err)
+		pos = posData["position"]
+	}
+
+	log.Println(consumerId, "reading string", STREAM_NAME, "from position", pos)
 	for {
-		msgs := s.Get("nothing", pos, batchSize, nil)
+		msgs := s.Get(STREAM_NAME, pos, batchSize, nil)
 		if len(msgs) == 0 {
 			log.Println(consumerId, "no messages")
 			time.Sleep(100 * time.Millisecond)
@@ -48,8 +60,21 @@ func readerSvc(conf pgx.ConnConfig, consumerId int, totalConsumers int) {
 			j, err := json.Marshal(msg)
 			panicIf(err)
 			log.Printf("%d read: %s", consumerId, string(j))
-			pos = msg.Position
+			if streamname.IsCategory(STREAM_NAME) {
+				pos = msg.GlobalPosition
+			} else {
+				pos = msg.Position
+			}
 		}
+
+		msg := new(postgres.Msg)
+		msg.Type = "Read"
+		objId := fmt.Sprintf("%d", consumerId)
+		streamName := streamname.StreamName("nothing", objId, "position")
+		msg.Data = map[string]int{
+			"position": pos,
+		}
+		s.Put(msg, streamName, nil, 0)
 	}
 }
 
@@ -107,7 +132,7 @@ func main() {
 
 	go readerSvc(conf, 0, 0)
 	runtime.Gosched()
-	producer(conf)
+	// producer(conf)
 	time.Sleep(600 * time.Millisecond)
 	// printMessages(conf)
 }

@@ -48,6 +48,20 @@ func (g *get) Get(
 	return messages
 }
 
+func (g *get) Last(streamName string) *ReadMsg {
+	stmt := `SELECT * FROM get_last_message($1::varchar)`
+	m := ReadMsg{}
+	err := g.db.QueryRow(stmt, streamName).
+		Scan(
+			&m.ID, &m.StreamName, &m.Type, &m.Position, &m.GlobalPosition,
+			&m.Data, &m.Metadata, &m.Time)
+	if err == pgx.ErrNoRows {
+		return nil
+	}
+	panicIf(err)
+	return &m
+}
+
 func (g *get) constrainCondition(cond *string) *string {
 	if cond == nil {
 		return nil
