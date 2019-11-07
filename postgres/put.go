@@ -1,10 +1,11 @@
 package postgres
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v4"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -62,7 +63,7 @@ func (p *put) executeQuery(
 			$1::varchar, $2::varchar, $3::varchar,
 			$4::jsonb, $5::jsonb, $6::bigint)`
 	var position int
-	err := p.db.QueryRow(statement, id, streamName, typ, data, meta, expectVer).
+	err := p.db.QueryRow(context.TODO(), statement, id, streamName, typ, data, meta, expectVer).
 		Scan(&position)
 	if err != nil {
 		return 0, err

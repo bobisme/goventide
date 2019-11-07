@@ -1,6 +1,6 @@
 package postgres
 
-import "github.com/jackc/pgx"
+import "github.com/jackc/pgx/v4"
 
 func panicIf(err error) {
 	if err != nil {

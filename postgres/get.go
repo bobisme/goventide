@@ -5,8 +5,10 @@ import (
 	"log"
 	"time"
 
+	"context"
+
 	"github.com/bobisme/goventide/streamname"
-	"github.com/jackc/pgx"
+	"github.com/jackc/pgx/v4"
 )
 
 type get struct {
@@ -32,7 +34,7 @@ func (g *get) Get(
 	streamName string, position int, batchSize int, condition *string) []ReadMsg {
 	stmt := g.sqlCommand(streamName)
 	cond := g.constrainCondition(condition)
-	rows, err := g.db.Query(stmt, streamName, position, batchSize, cond)
+	rows, err := g.db.Query(context.TODO(), stmt, streamName, position, batchSize, cond)
 	log.Println("GET", stmt, streamName, position, batchSize, cond)
 	defer rows.Close()
 	panicIf(err)
@@ -51,7 +53,7 @@ func (g *get) Get(
 func (g *get) Last(streamName string) *ReadMsg {
 	stmt := `SELECT * FROM get_last_message($1::varchar)`
 	m := ReadMsg{}
-	err := g.db.QueryRow(stmt, streamName).
+	err := g.db.QueryRow(context.TODO(), stmt, streamName).
 		Scan(
 			&m.ID, &m.StreamName, &m.Type, &m.Position, &m.GlobalPosition,
 			&m.Data, &m.Metadata, &m.Time)
