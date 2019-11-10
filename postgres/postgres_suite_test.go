@@ -31,10 +31,14 @@ func expectNo(err error) {
 
 func (c *container) stop() {
 	fmt.Println("stopping container", c.name)
-	cmd := exec.Command("docker rm -rf " + c.name)
+	cmd := exec.Command("docker", "rm", "-f", c.name)
 	cmd.Stderr = os.Stderr
 	cmd.Stdout = os.Stdout
-	cmd.Run()
+	if err := cmd.Run(); err != nil {
+		if cmd.ProcessState.ExitCode() != 1 {
+			panic(err)
+		}
+	}
 }
 
 func randStr(chars int) string {
@@ -61,9 +65,9 @@ func startContainer() *container {
 	if err != nil {
 		panic(err)
 	}
-
+	c := &container{name: containerName, port: port}
 	fmt.Println("Started container", containerName, "on port", port)
-	return &container{containerName, port}
+	return c
 }
 
 func TestPostgres(t *testing.T) {
